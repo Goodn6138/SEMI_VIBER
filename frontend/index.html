@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Editor with Backend Integration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .editor-container {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .results-container {
+            margin-top: 20px;
+        }
+        .result-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+            min-height: 100px;
+        }
+        .link-container {
+            margin-top: 15px;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Code Editor with Backend Integration</h1>
+        
+        <div class="editor-container">
+            <textarea id="codeEditor" placeholder="Enter your code here...">// Your code goes here</textarea>
+        </div>
+        
+        <div class="button-group">
+            <button id="runCodeBtn">Run Code</button>
+            <button id="generateCodeBtn">Generate Code with GPT</button>
+        </div>
+        
+        <div class="loading" id="loadingIndicator">
+            Processing your request...
+        </div>
+        
+        <div class="results-container">
+            <h3>Results:</h3>
+            <div class="result-box" id="resultsOutput">
+                Results will appear here...
+            </div>
+        </div>
+        
+        <div class="link-container" id="renderLinkContainer" style="display: none;">
+            <h3>View Your Static Site:</h3>
+            <a id="renderLink" href="#" target="_blank">View on Render</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const codeEditor = document.getElementById('codeEditor');
+            const runCodeBtn = document.getElementById('runCodeBtn');
+            const generateCodeBtn = document.getElementById('generateCodeBtn');
+            const resultsOutput = document.getElementById('resultsOutput');
+            const renderLinkContainer = document.getElementById('renderLinkContainer');
+            const renderLink = document.getElementById('renderLink');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            
+            // Function to show loading state
+            function showLoading() {
+                loadingIndicator.style.display = 'block';
+                runCodeBtn.disabled = true;
+                generateCodeBtn.disabled = true;
+            }
+            
+            // Function to hide loading state
+            function hideLoading() {
+                loadingIndicator.style.display = 'none';
+                runCodeBtn.disabled = false;
+                generateCodeBtn.disabled = false;
+            }
+            
+            // Run code button click handler
+            runCodeBtn.addEventListener('click', async function() {
+                const code = codeEditor.value;
+                
+                if (!code.trim()) {
+                    resultsOutput.textContent = 'Please enter some code to run.';
+                    return;
+                }
+                
+                showLoading();
+                
+                try {
+                    // Replace with your actual backend endpoint
+                    const response = await fetch('YOUR_BACKEND_ENDPOINT/run-code', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ code: code })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    resultsOutput.textContent = data.results || 'No results returned.';
+                    
+                } catch (error) {
+                    console.error('Error running code:', error);
+                    resultsOutput.textContent = 'Error: ' + error.message;
+                } finally {
+                    hideLoading();
+                }
+            });
+            
+            // Generate code button click handler
+            generateCodeBtn.addEventListener('click', async function() {
+                const description = prompt('Enter a description of the code you want to generate:');
+                
+                if (!description) {
+                    return;
+                }
+                
+                showLoading();
+                
+                try {
+                    // Replace with your actual backend endpoint
+                    const response = await fetch('YOUR_BACKEND_ENDPOINT/generate-code', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ description: description })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Update the code editor with generated code
+                    if (data.generatedCode) {
+                        codeEditor.value = data.generatedCode;
+                    }
+                    
+                    // Display folder structure
+                    if (data.folderStructure) {
+                        resultsOutput.textContent = 'Generated folder structure:\n' + data.folderStructure;
+                    }
+                    
+                    // Show render link if available
+                    if (data.renderUrl) {
+                        renderLink.href = data.renderUrl;
+                        renderLinkContainer.style.display = 'block';
+                    }
+                    
+                } catch (error) {
+                    console.error('Error generating code:', error);
+                    resultsOutput.textContent = 'Error: ' + error.message;
+                } finally {
+                    hideLoading();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
