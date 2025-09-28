@@ -22,7 +22,8 @@ def run_python_code(code: str):
     return result["run"]["stdout"], result["run"]["stderr"]
 
 # POST /api/run-code
-@app.route('/api/run-code', methods=['POST'])
+#@app.route('/api/run-code', methods=['POST'])
+@app.route('/run-code', methods=['POST'])
 def run_code():
     try:
         data = request.get_json()
