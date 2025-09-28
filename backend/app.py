@@ -6,7 +6,7 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 #CORS(app)  # Enable CORS for frontend-backend communication
-CORS(app, resources={r"/*": {"origins": [ "https://psi-vibe-coder.onrender.com"]}}# # replace with your actual Render frontend URL ]}})
+CORS(app, resources={r"/*": {"origins": "https://psi-vibe-coder.onrender.com"}}, supports_credentials=True)
 
 def run_python_code(code: str):
     url = "https://emkc.org/api/v2/piston/execute"
