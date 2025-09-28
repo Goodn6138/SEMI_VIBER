@@ -8,6 +8,10 @@ from datetime import datetime
 from flask_cors import CORS
 from github import Github
 from openai import OpenAI
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -22,11 +26,10 @@ def after_request(response):
     return response
 
 # ---------- CONFIGURATION ----------
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', 'your_github_token_here')   # 🔑 Use environment variable
-USERNAME = "Goodn6138"             # Your GitHub username
-LOCAL_PATH = "/tmp/my_project"     # Changed to /tmp for Render compatibility
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', 'your_openrouter_key_here')  # 🔑 Use environment variable
-# ----------------------------------
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+USERNAME = "Goodn6138"
+LOCAL_PATH = "/tmp/my_project"
 
 # Initialize OpenRouter Client
 client = OpenAI(
@@ -39,7 +42,6 @@ def extract_repo_name_from_description(description: str) -> str:
     if not description:
         return generate_repo_name("auto-generated-project")
     
-    # Look for patterns like "repo name: xxx", "repository: xxx", "project: xxx"
     patterns = [
         r'repo\s*name:\s*["\']?([^"\'\s\.]+)["\']?',
         r'repository:\s*["\']?([^"\'\s\.]+)["\']?',
@@ -52,37 +54,29 @@ def extract_repo_name_from_description(description: str) -> str:
         match = re.search(pattern, description, re.IGNORECASE)
         if match:
             repo_name = match.group(1).lower().replace('_', '-')
-            # Clean up the repo name
             repo_name = re.sub(r'[^a-z0-9\-]', '', repo_name)
             if repo_name and len(repo_name) >= 3:
                 return repo_name
 
-    # If no specific name found, generate one from description
     return generate_repo_name(description)
 
 def generate_repo_name(description: str) -> str:
     """Generate a unique repo name from description"""
-    # Extract key words from description
     words = re.findall(r'\b[a-z]{3,15}\b', description.lower())
-
-    # Remove common stop words
     stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
     filtered_words = [w for w in words if w not in stop_words]
 
     if filtered_words:
-        # Use up to 3 relevant words
         key_words = filtered_words[:3]
         base_name = '-'.join(key_words)
     else:
-        # Fallback: use first 15 chars of description
         base_name = re.sub(r'[^a-z0-9]', '-', description.lower()[:15]).strip('-')
 
-    # Add timestamp for uniqueness
     timestamp = datetime.now().strftime("%Y%m%d-%H%M")
     return f"{base_name}-{timestamp}"
 
 def generate_repo_structure(code_snippet: str, extra_description: str = ""):
-    """Ask OpenRouter to generate a repo structure (JSON with files & contents)"""
+    """Ask OpenRouter to generate a repo structure"""
     completion = client.chat.completions.create(
         model="openai/gpt-oss-120b:cerebras",
         messages=[{
@@ -104,10 +98,7 @@ Rules:
    2. app.py (Flask backend).
    3. requirements.txt (at least flask).
    4. README.md (must summarize everything, including the extra description).
-- Integrate the provided code snippet inside the appropriate file:
-   - If it is Python, put it inside app.py.
-   - If it is HTML, put it inside index.html.
-   - If it is JS/CSS, create new files and link them.
+- Integrate the provided code snippet inside the appropriate file.
 - You MUST also follow any additional instructions provided in the description above.
 """
         }],
@@ -119,30 +110,24 @@ def create_repo(description: str, repo_name: str = "colab-generated-repo"):
     """Create GitHub repo"""
     g = Github(GITHUB_TOKEN)
     user = g.get_user()
-
-    # Check if repo name is valid and available
     repo_name = sanitize_repo_name(repo_name)
 
     try:
-        # Check if repo already exists
         user.get_repo(repo_name)
-        # If it exists, append a random number
         import random
         repo_name = f"{repo_name}-{random.randint(1000, 9999)}"
     except:
-        pass  # Repo doesn't exist, we can use the name
+        pass
 
     repo = user.create_repo(repo_name, description=description, private=False)
-    print(f"✅ Created repo: {repo.clone_url}")
     return repo.clone_url, repo_name
 
 def sanitize_repo_name(name: str) -> str:
     """Sanitize repo name to meet GitHub requirements"""
-    # Remove invalid characters and limit length
     name = re.sub(r'[^a-zA-Z0-9._-]', '-', name)
-    name = name.strip('.-_')  # Remove leading/trailing special chars
-    name = name.lower()  # GitHub repo names are case insensitive
-    return name[:100]  # GitHub limit
+    name = name.strip('.-_')
+    name = name.lower()
+    return name[:100]
 
 def write_files_from_json(json_str: str):
     """Parse JSON and write files locally"""
@@ -175,18 +160,15 @@ def upload_files(repo_url):
         subprocess.run(["git", "config", "--global", "user.email", "colab@example.com"], check=True)
         subprocess.run(["git", "config", "--global", "user.name", "Colab Bot"], check=True)
 
-        # Remove existing origin if it exists
         result = subprocess.run(["git", "remote", "get-url", "origin"], capture_output=True, text=True)
         if result.returncode == 0:
             subprocess.run(["git", "remote", "remove", "origin"], check=True)
 
-        # Add origin with token authentication
         auth_repo_url = repo_url.replace("https://", f"https://{GITHUB_TOKEN}@")
         subprocess.run(["git", "remote", "add", "origin", auth_repo_url], check=True)
 
         subprocess.run(["git", "add", "."], check=True)
 
-        # Check if there are changes to commit
         result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, check=True)
         if result.stdout.strip():
             subprocess.run(["git", "commit", "-m", "Initial commit from Colab"], check=True)
@@ -202,32 +184,24 @@ def upload_files(repo_url):
 def create_project_repo(code_snippet: str, extra_description: str = "", repo_name: str = None):
     """Pipeline: generate repo → write files → push to GitHub"""
     try:
-        # Determine repo name
         if repo_name is None:
             repo_name = extract_repo_name_from_description(extra_description)
-            print(f"🎯 Generated repo name: {repo_name}")
         else:
             repo_name = sanitize_repo_name(repo_name)
-            print(f"🎯 Using specified repo name: {repo_name}")
 
         print("⚡ Generating repo structure with OpenRouter...")
         repo_json = generate_repo_structure(code_snippet, extra_description)
-        print("✅ Structure generated successfully")
 
         print("⚡ Writing files locally...")
         write_files_from_json(repo_json)
-        print("✅ Files written successfully")
 
         print("⚡ Creating GitHub repo...")
         repo_url, final_repo_name = create_repo(extra_description or "Auto-generated repo from code snippet", repo_name)
-        print("✅ Repo created successfully")
 
         print("⚡ Uploading files to GitHub...")
         upload_files(repo_url)
-        print("✅ Files uploaded successfully")
 
         print(f"🚀 Done! Repo pushed: {repo_url}")
-        print(f"📋 Final repo name: {final_repo_name}")
         return {"success": True, "repo_url": repo_url, "repo_name": final_repo_name}
 
     except Exception as e:
@@ -246,6 +220,7 @@ def run_python_code(code: str):
     result = response.json()
     return result["run"]["stdout"], result["run"]["stderr"]
 
+# ✅ This endpoint matches your frontend expectation
 @app.route("/run-code", methods=["POST"])
 def run_code():
     try:
@@ -253,62 +228,112 @@ def run_code():
         code = data.get("code", "")
 
         if not code:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": "No code provided",
-                        "results": "Error: No code provided",
-                    }
-                ),
-                400,
-            )
+            return jsonify({
+                "success": False,
+                "error": "No code provided",
+                "results": "Error: No code provided",
+            }), 400
 
-        # Execute the code
         stdout, stderr = run_python_code(code)
 
-        # Format results
         if stderr:
             results = f"STDOUT:\n{stdout}\n\nSTDERR:\n{stderr}"
         else:
             results = stdout if stdout else "Code executed successfully (no output)"
 
-        return jsonify(
-            {"success": True, "results": results, "timestamp": datetime.now().isoformat()}
-        )
+        return jsonify({
+            "success": True, 
+            "results": results, 
+            "timestamp": datetime.now().isoformat()
+        })
 
     except Exception as e:
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": str(e),
-                    "results": f"Error: {str(e)}",
-                }
-            ),
-            500,
-        )
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "results": f"Error: {str(e)}",
+        }), 500
 
+# ✅ NEW: This endpoint matches your frontend's "Generate Code with GPT" button
 @app.route("/generate-code", methods=["POST"])
-def create_repo_endpoint():
-    """Endpoint to create GitHub repository from code and description"""
+def generate_code():
+    """Generate code based on description and create GitHub repo"""
     try:
         data = request.get_json()
-        code_snippet = data.get("code", "")
+        description = data.get("description", "")
+        
+        if not description:
+            return jsonify({
+                "success": False,
+                "error": "No description provided"
+            }), 400
+
+        # Generate a simple code snippet based on description
+        prompt = f"Generate a Python code snippet for: {description}. Return only the code without explanations."
+        
+        completion = client.chat.completions.create(
+            model="openai/gpt-oss-120b:cerebras",
+            messages=[{
+                "role": "user",
+                "content": prompt
+            }],
+            max_tokens=500
+        )
+        
+        generated_code = completion.choices[0].message.content.strip()
+        
+        # Create GitHub repo with the generated code
+        repo_result = create_project_repo(generated_code, description)
+        
+        if repo_result["success"]:
+            # Format folder structure for display
+            folder_structure = f"""
+📁 {repo_result['repo_name']}
+├── 📄 index.html (Frontend)
+├── 📄 app.py (Flask Backend)
+├── 📄 requirements.txt
+└── 📄 README.md
+
+🔗 Repository: {repo_result['repo_url']}
+            """.strip()
+            
+            return jsonify({
+                "success": True,
+                "generatedCode": generated_code,
+                "folderStructure": folder_structure,
+                "renderUrl": repo_result["repo_url"].replace(".git", ""),  # GitHub URL instead of Render
+                "repoUrl": repo_result["repo_url"]
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": repo_result.get("error", "Failed to create repository")
+            }), 500
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+# ✅ NEW: Endpoint to create repo from existing code
+@app.route("/create-repo", methods=["POST"])
+def create_repo_endpoint():
+    """Create GitHub repository from existing code"""
+    try:
+        data = request.get_json()
+        code = data.get("code", "")
         description = data.get("description", "")
         repo_name = data.get("repo_name", "")
 
-        if not code_snippet:
+        if not code:
             return jsonify({
                 "success": False,
                 "error": "No code provided"
             }), 400
 
-        # Use empty string if repo_name is None
         repo_name_param = repo_name if repo_name else None
-
-        # Create the project repository
-        result = create_project_repo(code_snippet, description, repo_name_param)
+        result = create_project_repo(code, description, repo_name_param)
         
         if result["success"]:
             return jsonify({
@@ -339,5 +364,4 @@ def health_check():
     })
 
 if __name__ == "__main__":
-    # Useful for local testing
     app.run(host="0.0.0.0", port=5000, debug=True)
