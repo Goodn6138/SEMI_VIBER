@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -66,6 +67,7 @@
             padding: 15px;
             margin-bottom: 15px;
             min-height: 100px;
+            white-space: pre-wrap;
         }
         .link-container {
             margin-top: 15px;
@@ -81,6 +83,7 @@
             display: none;
             text-align: center;
             margin: 10px 0;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -116,6 +119,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const BACKEND_URL = 'https://semi-viber.onrender.com';
+
             const codeEditor = document.getElementById('codeEditor');
             const runCodeBtn = document.getElementById('runCodeBtn');
             const generateCodeBtn = document.getElementById('generateCodeBtn');
@@ -124,21 +129,21 @@
             const renderLink = document.getElementById('renderLink');
             const loadingIndicator = document.getElementById('loadingIndicator');
             
-            // Function to show loading state
+            // Show loading state
             function showLoading() {
                 loadingIndicator.style.display = 'block';
                 runCodeBtn.disabled = true;
                 generateCodeBtn.disabled = true;
             }
             
-            // Function to hide loading state
+            // Hide loading state
             function hideLoading() {
                 loadingIndicator.style.display = 'none';
                 runCodeBtn.disabled = false;
                 generateCodeBtn.disabled = false;
             }
             
-            // Run code button click handler
+            // Run code button
             runCodeBtn.addEventListener('click', async function() {
                 const code = codeEditor.value;
                 
@@ -150,8 +155,7 @@
                 showLoading();
                 
                 try {
-                    // Replace with your actual backend endpoint
-                    const response = await fetch('YOUR_BACKEND_ENDPOINT/run-code', {
+                    const response = await fetch(`${BACKEND_URL}/run-code`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -174,7 +178,7 @@
                 }
             });
             
-            // Generate code button click handler
+            // Generate code button
             generateCodeBtn.addEventListener('click', async function() {
                 const description = prompt('Enter a description of the code you want to generate:');
                 
@@ -185,8 +189,7 @@
                 showLoading();
                 
                 try {
-                    // Replace with your actual backend endpoint
-                    const response = await fetch('YOUR_BACKEND_ENDPOINT/generate-code', {
+                    const response = await fetch(`${BACKEND_URL}/generate-code`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -200,17 +203,14 @@
                     
                     const data = await response.json();
                     
-                    // Update the code editor with generated code
                     if (data.generatedCode) {
                         codeEditor.value = data.generatedCode;
                     }
                     
-                    // Display folder structure
                     if (data.folderStructure) {
                         resultsOutput.textContent = 'Generated folder structure:\n' + data.folderStructure;
                     }
                     
-                    // Show render link if available
                     if (data.renderUrl) {
                         renderLink.href = data.renderUrl;
                         renderLinkContainer.style.display = 'block';
@@ -227,3 +227,4 @@
     </script>
 </body>
 </html>
+```
