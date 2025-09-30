@@ -1,228 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Editor with Backend Integration</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .editor-container {
-            margin-bottom: 20px;
-        }
-        textarea {
-            width: 100%;
-            height: 300px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-family: monospace;
-            resize: vertical;
-        }
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .results-container {
-            margin-top: 20px;
-        }
-        .result-box {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 15px;
-            min-height: 100px;
-            white-space: pre-wrap;
-        }
-        .link-container {
-            margin-top: 15px;
-        }
-        a {
-            color: #0066cc;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 10px 0;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Editor Platform</title>
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Code Editor with Backend Integration</h1>
-        
-        <div class="editor-container">
-            <textarea id="codeEditor" placeholder="Enter your code here...">// Your code goes here</textarea>
+  <div id="auth-container" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Sign In</h2>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="auth-email" class="form-input" placeholder="your@email.com">
         </div>
-        
-        <div class="button-group">
-            <button id="runCodeBtn">Run Code</button>
-            <button id="generateCodeBtn">Generate Code with GPT</button>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="auth-password" class="form-input" placeholder="Enter password">
         </div>
-        
-        <div class="loading" id="loadingIndicator">
-            Processing your request...
-        </div>
-        
-        <div class="results-container">
-            <h3>Results:</h3>
-            <div class="result-box" id="resultsOutput">
-                Results will appear here...
-            </div>
-        </div>
-        
-        <div class="link-container" id="renderLinkContainer" style="display: none;">
-            <h3>View Your Static Site:</h3>
-            <a id="renderLink" href="#" target="_blank">View on Render</a>
-        </div>
+        <div id="auth-error" class="form-help" style="color: #f48771; display: none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="auth-signup-btn" class="btn btn-secondary">Sign Up</button>
+        <button id="auth-signin-btn" class="btn btn-primary">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-container" class="app-container hidden">
+    <div class="titlebar">
+      <div class="titlebar-title">Code Editor Platform</div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const BACKEND_URL = 'https://semi-viber.onrender.com';
+    <div class="main-container">
+      <div class="sidebar">
+        <div class="sidebar-header">
+          Explorer
+          <span class="settings-icon" id="settings-btn">⚙️</span>
+        </div>
 
-            const codeEditor = document.getElementById('codeEditor');
-            const runCodeBtn = document.getElementById('runCodeBtn');
-            const generateCodeBtn = document.getElementById('generateCodeBtn');
-            const resultsOutput = document.getElementById('resultsOutput');
-            const renderLinkContainer = document.getElementById('renderLinkContainer');
-            const renderLink = document.getElementById('renderLink');
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            
-            // Show loading state
-            function showLoading() {
-                loadingIndicator.style.display = 'block';
-                runCodeBtn.disabled = true;
-                generateCodeBtn.disabled = true;
-            }
-            
-            // Hide loading state
-            function hideLoading() {
-                loadingIndicator.style.display = 'none';
-                runCodeBtn.disabled = false;
-                generateCodeBtn.disabled = false;
-            }
-            
-            // Run code button
-            runCodeBtn.addEventListener('click', async function() {
-                const code = codeEditor.value;
-                
-                if (!code.trim()) {
-                    resultsOutput.textContent = 'Please enter some code to run.';
-                    return;
-                }
-                
-                showLoading();
-                
-                try {
-                    const response = await fetch(`${BACKEND_URL}/run-code`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ code: code })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    resultsOutput.textContent = data.results || 'No results returned.';
-                    
-                } catch (error) {
-                    console.error('Error running code:', error);
-                    resultsOutput.textContent = 'Error: ' + error.message;
-                } finally {
-                    hideLoading();
-                }
-            });
-            
-            // Generate code button
-            generateCodeBtn.addEventListener('click', async function() {
-                const description = prompt('Enter a description of the code you want to generate:');
-                
-                if (!description) {
-                    return;
-                }
-                
-                showLoading();
-                
-                try {
-                    const response = await fetch(`${BACKEND_URL}/generate-code`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ description: description })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    if (data.generatedCode) {
-                        codeEditor.value = data.generatedCode;
-                    }
-                    
-                    if (data.folderStructure) {
-                        resultsOutput.textContent = 'Generated folder structure:\n' + data.folderStructure;
-                    }
-                    
-                    if (data.renderUrl) {
-                        renderLink.href = data.renderUrl;
-                        renderLinkContainer.style.display = 'block';
-                    }
-                    
-                } catch (error) {
-                    console.error('Error generating code:', error);
-                    resultsOutput.textContent = 'Error: ' + error.message;
-                } finally {
-                    hideLoading();
-                }
-            });
-        });
-    </script>
+        <div class="action-buttons">
+          <button class="action-btn" id="run-code-btn">Run Code</button>
+          <button class="action-btn" id="generate-btn">Generate</button>
+        </div>
+
+        <div class="file-tree" id="file-tree">
+          <div style="padding: 12px; color: #858585; font-size: 13px;">
+            No files loaded. Generate code to see files.
+          </div>
+        </div>
+      </div>
+
+      <div class="editor-container">
+        <div class="tabs-bar" id="tabs-bar"></div>
+        <div class="editor-content" id="editor-content">
+          <div class="editor-placeholder">
+            Select a file to view its contents
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <span class="status-item" id="status-text">Ready</span>
+      <span class="status-item" id="user-email"></span>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Settings</h2>
+        <button class="modal-close" id="settings-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">GitHub Personal Access Token</label>
+          <input type="password" id="github-token" class="form-input" placeholder="ghp_...">
+          <p class="form-help">
+            Create a token at: github.com/settings/tokens with 'repo' scope
+          </p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">OpenAI API Key</label>
+          <input type="password" id="openai-key" class="form-input" placeholder="sk-...">
+          <p class="form-help">
+            Get your API key from platform.openai.com/api-keys
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="settings-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="settings-save" class="btn btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
