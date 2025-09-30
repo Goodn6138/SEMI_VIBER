@@ -15,8 +15,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# ✅ Allow only your frontend domain
-CORS(app, resources={r"/*": {"origins": "https://psi-vibe-coder.onrender.com"}}, supports_credentials=True)
+# ✅ Allow frontend domains (both production and local development)
+CORS(app, resources={r"/*": {"origins": ["https://psi-vibe-coder.onrender.com", "http://localhost:3000", "http://127.0.0.1:3000"]}}, supports_credentials=True)
 
 # ✅ Ensure preflight OPTIONS requests work
 @app.after_request
@@ -347,6 +347,46 @@ def create_repo_endpoint():
                 "success": False,
                 "error": result.get("error", "Unknown error occurred")
             }), 500
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route("/get-files", methods=["POST"])
+def get_files():
+    """Get files from the local project directory"""
+    try:
+        if not os.path.exists(LOCAL_PATH):
+            return jsonify({
+                "success": False,
+                "error": "No project files found"
+            }), 404
+
+        files = []
+        for root, dirs, filenames in os.walk(LOCAL_PATH):
+            for filename in filenames:
+                if filename.startswith('.'):
+                    continue
+
+                full_path = os.path.join(root, filename)
+                relative_path = os.path.relpath(full_path, LOCAL_PATH)
+
+                try:
+                    with open(full_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    files.append({
+                        "path": relative_path,
+                        "content": content
+                    })
+                except:
+                    pass
+
+        return jsonify({
+            "success": True,
+            "files": files
+        })
 
     except Exception as e:
         return jsonify({

@@ -195,16 +195,23 @@ async function handleGenerate() {
     const data = await response.json();
 
     if (data.success) {
-      alert('Code generated successfully!\n\nRepository: ' + data.repoUrl);
+      setStatus('Fetching generated files...');
 
-      if (data.generatedCode) {
-        const mockFiles = [
-          { path: 'main.py', content: data.generatedCode },
-          { path: 'README.md', content: '# Generated Project\n\n' + data.folderStructure }
-        ];
-        fileTree.setFiles(mockFiles);
+      const filesResponse = await fetch(`${BACKEND_URL}/get-files`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (filesResponse.ok) {
+        const filesData = await filesResponse.json();
+        if (filesData.success && filesData.files) {
+          fileTree.setFiles(filesData.files);
+        }
       }
 
+      alert('Code generated successfully!\n\nRepository: ' + data.repoUrl + '\n\n' + data.folderStructure);
       setStatus('Code generated successfully');
     } else {
       throw new Error(data.error || 'Failed to generate code');
