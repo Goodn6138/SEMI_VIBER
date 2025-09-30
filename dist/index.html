@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Editor Platform</title>
+  <script type="module" crossorigin src="/assets/index-DX1F8-mI.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DnW5eqSC.css">
+</head>
+<body>
+  <div id="auth-container" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Sign In</h2>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="auth-email" class="form-input" placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="auth-password" class="form-input" placeholder="Enter password">
+        </div>
+        <div id="auth-error" class="form-help" style="color: #f48771; display: none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="auth-signup-btn" class="btn btn-secondary">Sign Up</button>
+        <button id="auth-signin-btn" class="btn btn-primary">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-container" class="app-container hidden">
+    <div class="titlebar">
+      <div class="titlebar-title">Code Editor Platform</div>
+    </div>
+
+    <div class="main-container">
+      <div class="sidebar">
+        <div class="sidebar-header">
+          Explorer
+          <span class="settings-icon" id="settings-btn">⚙️</span>
+        </div>
+
+        <div class="action-buttons">
+          <button class="action-btn" id="run-code-btn">Run Code</button>
+          <button class="action-btn" id="generate-btn">Generate</button>
+        </div>
+
+        <div class="file-tree" id="file-tree">
+          <div style="padding: 12px; color: #858585; font-size: 13px;">
+            No files loaded. Generate code to see files.
+          </div>
+        </div>
+      </div>
+
+      <div class="editor-container">
+        <div class="tabs-bar" id="tabs-bar"></div>
+        <div class="editor-content" id="editor-content">
+          <div class="editor-placeholder">
+            Select a file to view its contents
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <span class="status-item" id="status-text">Ready</span>
+      <span class="status-item" id="user-email"></span>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Settings</h2>
+        <button class="modal-close" id="settings-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">GitHub Personal Access Token</label>
+          <input type="password" id="github-token" class="form-input" placeholder="ghp_...">
+          <p class="form-help">
+            Create a token at: github.com/settings/tokens with 'repo' scope
+          </p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">OpenAI API Key</label>
+          <input type="password" id="openai-key" class="form-input" placeholder="sk-...">
+          <p class="form-help">
+            Get your API key from platform.openai.com/api-keys
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="settings-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="settings-save" class="btn btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-spinner"></div>
+  </div>
+
+</body>
+</html>
