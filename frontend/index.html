@@ -1,228 +1,735 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Editor with Backend Integration</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .editor-container {
-            margin-bottom: 20px;
-        }
-        textarea {
-            width: 100%;
-            height: 300px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-family: monospace;
-            resize: vertical;
-        }
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .results-container {
-            margin-top: 20px;
-        }
-        .result-box {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 15px;
-            min-height: 100px;
-            white-space: pre-wrap;
-        }
-        .link-container {
-            margin-top: 15px;
-        }
-        a {
-            color: #0066cc;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 10px 0;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Code Editor with Backend Integration</h1>
-        
-        <div class="editor-container">
-            <textarea id="codeEditor" placeholder="Enter your code here...">// Your code goes here</textarea>
-        </div>
-        
-        <div class="button-group">
-            <button id="runCodeBtn">Run Code</button>
-            <button id="generateCodeBtn">Generate Code with GPT</button>
-        </div>
-        
-        <div class="loading" id="loadingIndicator">
-            Processing your request...
-        </div>
-        
-        <div class="results-container">
-            <h3>Results:</h3>
-            <div class="result-box" id="resultsOutput">
-                Results will appear here...
-            </div>
-        </div>
-        
-        <div class="link-container" id="renderLinkContainer" style="display: none;">
-            <h3>View Your Static Site:</h3>
-            <a id="renderLink" href="#" target="_blank">View on Render</a>
-        </div>
-    </div>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const BACKEND_URL = 'https://semi-viber.onrender.com';
+  <script>
+    (function () {
+      var color = localStorage.getItem("__primary_color");
+      var __bg_color = "#20202c";
+      if (color) {
+        __bg_color = color;
+      }
 
-            const codeEditor = document.getElementById('codeEditor');
-            const runCodeBtn = document.getElementById('runCodeBtn');
-            const generateCodeBtn = document.getElementById('generateCodeBtn');
-            const resultsOutput = document.getElementById('resultsOutput');
-            const renderLinkContainer = document.getElementById('renderLinkContainer');
-            const renderLink = document.getElementById('renderLink');
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            
-            // Show loading state
-            function showLoading() {
-                loadingIndicator.style.display = 'block';
-                runCodeBtn.disabled = true;
-                generateCodeBtn.disabled = true;
-            }
-            
-            // Hide loading state
-            function hideLoading() {
-                loadingIndicator.style.display = 'none';
-                runCodeBtn.disabled = false;
-                generateCodeBtn.disabled = false;
-            }
-            
-            // Run code button
-            runCodeBtn.addEventListener('click', async function() {
-                const code = codeEditor.value;
-                
-                if (!code.trim()) {
-                    resultsOutput.textContent = 'Please enter some code to run.';
-                    return;
-                }
-                
-                showLoading();
-                
-                try {
-                    const response = await fetch(`${BACKEND_URL}/run-code`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ code: code })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    resultsOutput.textContent = data.results || 'No results returned.';
-                    
-                } catch (error) {
-                    console.error('Error running code:', error);
-                    resultsOutput.textContent = 'Error: ' + error.message;
-                } finally {
-                    hideLoading();
-                }
-            });
-            
-            // Generate code button
-            generateCodeBtn.addEventListener('click', async function() {
-                const description = prompt('Enter a description of the code you want to generate:');
-                
-                if (!description) {
-                    return;
-                }
-                
-                showLoading();
-                
-                try {
-                    const response = await fetch(`${BACKEND_URL}/generate-code`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ description: description })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    if (data.generatedCode) {
-                        codeEditor.value = data.generatedCode;
-                    }
-                    
-                    if (data.folderStructure) {
-                        resultsOutput.textContent = 'Generated folder structure:\n' + data.folderStructure;
-                    }
-                    
-                    if (data.renderUrl) {
-                        renderLink.href = data.renderUrl;
-                        renderLinkContainer.style.display = 'block';
-                    }
-                    
-                } catch (error) {
-                    console.error('Error generating code:', error);
-                    resultsOutput.textContent = 'Error: ' + error.message;
-                } finally {
-                    hideLoading();
-                }
-            });
+      document.querySelector(":root").style.cssText =
+        "--bg-color: " + __bg_color;
+
+      var __testEl = document.createElement("div");
+      var __testChildEl = document.createElement("div");
+      if (__testEl.append) {
+        __testEl.append(__testChildEl);
+        if (__testEl.children.length === 1) {
+          return;
+        }
+
+        HTMLElement.prototype.append = function () {
+          var argArr = Array.prototype.slice.call(arguments),
+            docFrag = document.createDocumentFragment();
+
+          argArr.forEach(function (argItem) {
+            var isNode = argItem instanceof Node;
+            argItem = isNode
+              ? argItem
+              : document.createTextNode(String(argItem));
+            docFrag.appendChild(argItem);
+          });
+
+          this.appendChild(docFrag);
+        };
+      }
+    })();
+
+    // save all touch events added by ace editor so it can be use in src/ade/touchHandler.js
+    var __oldAddEventListener = HTMLElement.prototype.addEventListener;
+    HTMLElement.prototype.addEventListener = function (
+      type,
+      listener,
+      useCapture,
+      allowed,
+    ) {
+      if (typeof useCapture === "boolean") {
+        allowed = useCapture;
+        useCapture = undefined;
+      }
+
+      if (type === "contextmenu" && !allowed) {
+        return;
+      }
+
+      if (allowed) {
+        __oldAddEventListener.call(this, type, listener, useCapture);
+        return;
+      }
+
+      if (
+        this.classList.contains("editor-container") &&
+        type.indexOf("touch") === 0
+      ) {
+        if (!this.eventListeners) {
+          this.eventListeners = {};
+        }
+
+        if (!this.eventListeners[type]) {
+          this.eventListeners[type] = [];
+        }
+        this.eventListeners[type].push({
+          listener: listener,
+          useCapture: useCapture,
         });
-    </script>
+
+        return;
+      }
+      __oldAddEventListener.call(this, type, listener, useCapture);
+    };
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-beautify.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-emmet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-error_marker.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-whitespace.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-static_highlight.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-inline_autocomplete.js"></script>
+
+  <style>
+    :root {
+      --test-height: 45px;
+      --bg-color: #20202c;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: #e0e0e0;
+      overflow-x: hidden;
+    }
+
+    body.loading {
+      position: relative;
+    }
+
+    body.loading.splash::before {
+      content: attr(data-version);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23999'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='14' fill='white' text-anchor='middle' dominant-baseline='middle'%3EAcode%3C/text%3E%3C/svg%3E");
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 180px;
+      background-color: #9999ff;
+      background-color: var(--bg-color);
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100vh;
+      width: 100vw;
+      z-index: 999999;
+      text-align: center;
+      line-height: 150vh;
+      color: rgb(209, 209, 209);
+      letter-spacing: 2.4px;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    body.loading.splash::after {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      left: 50%;
+      transform: translate(-50%, 0);
+      content: attr(data-small-msg);
+      margin: 15px auto;
+      z-index: 999999;
+      color: rgb(209, 209, 209);
+      font-size: 1rem;
+      width: 90vw;
+      text-align: center;
+    }
+
+    .app-container {
+      display: flex;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      gap: 20px;
+      transition: transform 0.3s ease;
+    }
+
+    .app-container.sidebar-open {
+      transform: translateX(300px);
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -300px;
+      width: 300px;
+      height: 100vh;
+      background-color: #2d2d3a;
+      border-radius: 0 8px 8px 0;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+      padding: 15px;
+      overflow-y: auto;
+      z-index: 1000;
+      transition: left 0.3s ease;
+    }
+
+    .sidebar.open {
+      left: 0;
+    }
+
+    .main-content {
+      flex: 1;
+      background-color: #2d2d3a;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      padding: 20px;
+      position: relative;
+    }
+
+    h1 {
+      color: #e0e0e0;
+      text-align: center;
+      margin-top: 0;
+    }
+
+    .editor-container {
+      margin-bottom: 20px;
+      height: 400px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    #aceEditor {
+      width: 100%;
+      height: 100%;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    .results-container {
+      margin-top: 20px;
+    }
+
+    .result-box {
+      background-color: #3a3a4a;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 15px;
+      min-height: 100px;
+      white-space: pre-wrap;
+      color: #e0e0e0;
+    }
+
+    .link-container {
+      margin-top: 15px;
+    }
+
+    a {
+      color: #6ca6fd;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 10px 0;
+      font-weight: bold;
+    }
+
+    /* Hide splash screen when app is loaded */
+    body:not(.loading) .splash-screen {
+      display: none;
+    }
+
+    /* File Explorer Styles */
+    .file-explorer {
+      margin-top: 15px;
+    }
+
+    .file-explorer-title {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #e0e0e0;
+      border-bottom: 1px solid #444;
+      padding-bottom: 5px;
+    }
+
+    .file-tree {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+    }
+
+    .file-tree li {
+      margin: 5px 0;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .file-item:hover {
+      background-color: #3a3a4a;
+    }
+
+    .file-item.selected {
+      background-color: #4a4a5a;
+    }
+
+    .file-icon {
+      margin-right: 8px;
+      width: 16px;
+      text-align: center;
+    }
+
+    .folder {
+      font-weight: bold;
+    }
+
+    .folder > .file-item::before {
+      content: "📁";
+      margin-right: 5px;
+    }
+
+    .folder.expanded > .file-item::before {
+      content: "📂";
+    }
+
+    .file::before {
+      content: "📄";
+      margin-right: 5px;
+    }
+
+    .file-tree ul {
+      list-style: none;
+      padding-left: 20px;
+      margin: 0;
+      display: none;
+    }
+
+    .folder.expanded > ul {
+      display: block;
+    }
+
+    .empty-message {
+      color: #888;
+      font-style: italic;
+      text-align: center;
+      padding: 10px;
+    }
+
+    /* Toggle button for sidebar */
+    .sidebar-toggle {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .sidebar-toggle:hover {
+      background-color: #45a049;
+    }
+
+    /* Overlay for when sidebar is open */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      display: none;
+    }
+
+    .sidebar-overlay.active {
+      display: block;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 250px;
+        left: -250px;
+      }
+      
+      .app-container.sidebar-open {
+        transform: translateX(250px);
+      }
+    }
+  </style>
+</head>
+
+<body class="loading splash" data-version="Acode Editor v1.0" data-small-msg="Loading your coding environment...">
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  
+  <div class="app-container" id="appContainer">
+    <button class="sidebar-toggle" id="sidebarToggle">
+      <span>☰</span> Files
+    </button>
+    
+    <div class="sidebar" id="sidebar">
+      <h2>File Explorer</h2>
+      <div class="file-explorer">
+        <div class="file-explorer-title">Project Structure</div>
+        <div id="fileTree" class="empty-message">
+          No files received yet. Generate code to see the file structure.
+        </div>
+      </div>
+    </div>
+    
+    <div class="main-content">
+      <h1>Code Editor with Backend Integration</h1>
+      
+      <div class="editor-container">
+        <div id="aceEditor">// Your code goes here</div>
+      </div>
+      
+      <div class="button-group">
+        <button id="runCodeBtn">Run Code</button>
+        <button id="generateCodeBtn">Generate Code with GPT</button>
+      </div>
+      
+      <div class="loading" id="loadingIndicator">
+        Processing your request...
+      </div>
+      
+      <div class="results-container">
+        <h3>Results:</h3>
+        <div class="result-box" id="resultsOutput">
+          Results will appear here...
+        </div>
+      </div>
+      
+      <div class="link-container" id="renderLinkContainer" style="display: none;">
+        <h3>View Your Static Site:</h3>
+        <a id="renderLink" href="#" target="_blank">View on Render</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const BACKEND_URL = 'https://semi-viber.onrender.com';
+
+      // Initialize Ace Editor
+      const editor = ace.edit("aceEditor");
+      editor.setTheme("ace/theme/monokai");
+      editor.session.setMode("ace/mode/javascript");
+      editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableLiveAutocompletion: true,
+        enableSnippets: true,
+        fontSize: "14px",
+        showPrintMargin: false
+      });
+
+      const runCodeBtn = document.getElementById('runCodeBtn');
+      const generateCodeBtn = document.getElementById('generateCodeBtn');
+      const resultsOutput = document.getElementById('resultsOutput');
+      const renderLinkContainer = document.getElementById('renderLinkContainer');
+      const renderLink = document.getElementById('renderLink');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const fileTreeContainer = document.getElementById('fileTree');
+      const sidebar = document.getElementById('sidebar');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebarOverlay = document.getElementById('sidebarOverlay');
+      const appContainer = document.getElementById('appContainer');
+      
+      let isSidebarOpen = false;
+      
+      // Toggle sidebar function
+      function toggleSidebar() {
+        isSidebarOpen = !isSidebarOpen;
+        
+        if (isSidebarOpen) {
+          sidebar.classList.add('open');
+          appContainer.classList.add('sidebar-open');
+          sidebarOverlay.classList.add('active');
+        } else {
+          sidebar.classList.remove('open');
+          appContainer.classList.remove('sidebar-open');
+          sidebarOverlay.classList.remove('active');
+        }
+      }
+      
+      // Event listeners for sidebar toggle
+      sidebarToggle.addEventListener('click', toggleSidebar);
+      sidebarOverlay.addEventListener('click', toggleSidebar);
+      
+      // Remove loading class to hide splash screen
+      document.body.classList.remove('loading', 'splash');
+      
+      // Show loading state
+      function showLoading() {
+        loadingIndicator.style.display = 'block';
+        runCodeBtn.disabled = true;
+        generateCodeBtn.disabled = true;
+      }
+      
+      // Hide loading state
+      function hideLoading() {
+        loadingIndicator.style.display = 'none';
+        runCodeBtn.disabled = false;
+        generateCodeBtn.disabled = false;
+      }
+      
+      // Function to create file tree from folder structure
+      function createFileTree(folderStructure) {
+        if (!folderStructure) return null;
+        
+        // Parse the folder structure if it's a string
+        let structure;
+        if (typeof folderStructure === 'string') {
+          try {
+            // Try to parse as JSON first
+            structure = JSON.parse(folderStructure);
+          } catch (e) {
+            // If it's not JSON, try to parse as a tree string
+            structure = parseTreeString(folderStructure);
+          }
+        } else {
+          structure = folderStructure;
+        }
+        
+        return structure;
+      }
+      
+      // Function to parse tree string format
+      function parseTreeString(treeString) {
+        const lines = treeString.split('\n');
+        const root = { name: 'root', type: 'folder', children: [] };
+        const stack = [{ node: root, level: -1 }];
+        
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          
+          // Count leading spaces to determine level
+          const level = (line.match(/^(\s*)/)[0].length) / 2;
+          const name = line.trim();
+          const isFolder = name.endsWith('/');
+          const nodeName = isFolder ? name.slice(0, -1) : name;
+          
+          const node = {
+            name: nodeName,
+            type: isFolder ? 'folder' : 'file',
+            children: isFolder ? [] : undefined
+          };
+          
+          // Find parent at the appropriate level
+          while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+            stack.pop();
+          }
+          
+          const parent = stack[stack.length - 1].node;
+          parent.children.push(node);
+          
+          if (isFolder) {
+            stack.push({ node, level });
+          }
+        }
+        
+        return root;
+      }
+      
+      // Function to render file tree in the DOM
+      function renderFileTree(structure) {
+        if (!structure) {
+          fileTreeContainer.innerHTML = '<div class="empty-message">No files received yet. Generate code to see the file structure.</div>';
+          return;
+        }
+        
+        const ul = document.createElement('ul');
+        ul.className = 'file-tree';
+        
+        function createTreeNodes(node, parentUl) {
+          if (!node.children || node.children.length === 0) return;
+          
+          node.children.forEach(child => {
+            const li = document.createElement('li');
+            li.className = child.type;
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'file-item';
+            itemDiv.innerHTML = `<span class="file-icon"></span>${child.name}`;
+            
+            li.appendChild(itemDiv);
+            parentUl.appendChild(li);
+            
+            if (child.type === 'folder' && child.children && child.children.length > 0) {
+              const childUl = document.createElement('ul');
+              li.appendChild(childUl);
+              createTreeNodes(child, childUl);
+              
+              // Add click handler to toggle folder
+              itemDiv.addEventListener('click', function(e) {
+                e.stopPropagation();
+                li.classList.toggle('expanded');
+              });
+            } else if (child.type === 'file') {
+              // Add click handler for files
+              itemDiv.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Remove selected class from all items
+                document.querySelectorAll('.file-item').forEach(el => {
+                  el.classList.remove('selected');
+                });
+                // Add selected class to clicked item
+                itemDiv.classList.add('selected');
+                
+                // You could load file content here if needed
+                // loadFileContent(child);
+              });
+            }
+          });
+        }
+        
+        createTreeNodes(structure, ul);
+        fileTreeContainer.innerHTML = '';
+        fileTreeContainer.appendChild(ul);
+      }
+      
+      // Run code button
+      runCodeBtn.addEventListener('click', async function() {
+        const code = editor.getValue();
+        
+        if (!code.trim()) {
+          resultsOutput.textContent = 'Please enter some code to run.';
+          return;
+        }
+        
+        showLoading();
+        
+        try {
+          const response = await fetch(`${BACKEND_URL}/run-code`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ code: code })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          resultsOutput.textContent = data.results || 'No results returned.';
+          
+        } catch (error) {
+          console.error('Error running code:', error);
+          resultsOutput.textContent = 'Error: ' + error.message;
+        } finally {
+          hideLoading();
+        }
+      });
+      
+      // Generate code button
+      generateCodeBtn.addEventListener('click', async function() {
+        const description = prompt('Enter a description of the code you want to generate:');
+        
+        if (!description) {
+          return;
+        }
+        
+        showLoading();
+        
+        try {
+          const response = await fetch(`${BACKEND_URL}/generate-code`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ description: description })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.generatedCode) {
+            editor.setValue(data.generatedCode, -1);
+          }
+          
+          if (data.folderStructure) {
+            // Parse and render the folder structure
+            const fileTree = createFileTree(data.folderStructure);
+            renderFileTree(fileTree);
+            
+            // Auto-open the sidebar when we receive files
+            if (!isSidebarOpen) {
+              toggleSidebar();
+            }
+            
+            resultsOutput.textContent = 'Generated folder structure:\n' + data.folderStructure;
+          } else {
+            resultsOutput.textContent = 'Code generated successfully!';
+          }
+          
+          if (data.renderUrl) {
+            renderLink.href = data.renderUrl;
+            renderLinkContainer.style.display = 'block';
+          }
+          
+        } catch (error) {
+          console.error('Error generating code:', error);
+          resultsOutput.textContent = 'Error: ' + error.message;
+        } finally {
+          hideLoading();
+        }
+      });
+    });
+  </script>
 </body>
+
 </html>
